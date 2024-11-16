@@ -1,0 +1,59 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+
+# Sample dataset (replace this with your actual dataset)
+data = {
+    'Product Name': ['Item A', 'Item B', 'Item A', 'Item C'],
+    'Manufacturing Date': ['2023-01-01', '2023-03-01', '2023-02-01', '2023-05-01'],
+    'Expiry Date': ['2023-12-31', '2023-06-30', '2023-12-31', '2023-12-01'],
+    'Purchase Date': ['2023-02-15', '2023-04-01', '2023-03-01', '2023-05-10'],
+    'Consumption Date': ['2023-04-01', '2023-05-10', '2023-06-01', '2023-07-15']
+}
+
+df = pd.DataFrame(data)
+
+# Convert date columns to datetime
+df['Manufacturing Date'] = pd.to_datetime(df['Manufacturing Date'])
+df['Expiry Date'] = pd.to_datetime(df['Expiry Date'])
+df['Purchase Date'] = pd.to_datetime(df['Purchase Date'])
+df['Consumption Date'] = pd.to_datetime(df['Consumption Date'])
+
+# Feature Engineering: calculate the age of the product, time to expiry, and time since purchase
+df['Age'] = (df['Purchase Date'] - df['Manufacturing Date']).dt.days
+df['Remaining Shelf Life'] = (df['Expiry Date'] - df['Purchase Date']).dt.days
+df['Time to Consumption'] = (df['Consumption Date'] - df['Purchase Date']).dt.days
+
+# Encode product names as categorical values
+label_encoder = LabelEncoder()
+df['Product Name Encoded'] = label_encoder.fit_transform(df['Product Name'])
+
+# Select features (independent variables) and target (dependent variable)
+X = df[['Age', 'Remaining Shelf Life', 'Product Name Encoded']]
+y = df['Time to Consumption']
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a regression model (Random Forest)
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate model performance
+mae = mean_absolute_error(y_test, y_pred)
+print(f'Mean Absolute Error (MAE): {mae}')
+
+# Visualize predictions vs actual values
+plt.scatter(y_test, y_pred)
+plt.plot([0, max(y_test)], [0, max(y_test)], color='red', linewidth=2)  # line of perfect prediction
+plt.xlabel('Actual Consumption Days')
+plt.ylabel('Predicted Consumption Days')
+plt.title('Actual vs Predicted Consumption Days')
+plt.show()
